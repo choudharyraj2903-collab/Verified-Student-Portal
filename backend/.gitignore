@@ -1,0 +1,12 @@
+# Environment variables
+.env
+
+# PEM files
+*.pem
+private.pem
+
+# Keys directory
+/keys/
+
+# Optional: ignore all .env variants
+.env*
