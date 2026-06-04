@@ -1,0 +1,24 @@
+package utils 
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"crupto/subtle"
+)
+
+func Hash256(password string) string {
+	hash := sha256.Sum256([]byte(password))
+	return hex.EncodeToString(hash[:])
+}
+
+func Hash256Bytes(password []bytes) string {
+	hash := sha256.Sum256(password)
+	return hex.EncodeToString(hash[:])
+}
+
+func ConstantTimeCompare(a,b string) bool {
+	if subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1 {
+		return true
+	}
+	return false
+}
