@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>New Login Detected — Campus Council Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f7;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                         Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        table { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img   { border: 0; display: block; outline: none; }
+        a     { text-decoration: none; }
+
+        /* =========================================================
+           Wrapper
+        ========================================================= */
+        .email-wrapper {
+            width: 100%;
+            background-color: #f4f4f7;
+            padding: 40px 16px;
+        }
+
+        /* =========================================================
+           Card
+        ========================================================= */
+        .email-card {
+            max-width: 520px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        /* =========================================================
+           Alert Header — distinct from magic link header
+           Orange tones signal this is an action-required email
+        ========================================================= */
+        .email-header {
+            background-color: #1a1a2e;
+            padding: 28px 40px;
+            border-bottom: 3px solid #f59e0b;
+        }
+
+        .email-header .portal-name {
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .email-header .alert-badge {
+            display: inline-block;
+            background-color: #f59e0b;
+            color: #1a1a2e;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+            margin-top: 8px;
+            text-transform: uppercase;
+        }
+
+        /* =========================================================
+           Body
+        ========================================================= */
+        .email-body {
+            padding: 40px 40px 32px;
+        }
+
+        .email-body h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 12px;
+        }
+
+        .email-body p {
+            font-size: 15px;
+            color: #555577;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        /* =========================================================
+           Login details block
+        ========================================================= */
+        .login-details {
+            background-color: #f8f8fc;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 20px 0 28px;
+        }
+
+        .login-details table {
+            width: 100%;
+        }
+
+        .login-details td {
+            font-size: 13px;
+            padding: 4px 0;
+            vertical-align: top;
+        }
+
+        .login-details td.label {
+            color: #999999;
+            width: 90px;
+            font-weight: 500;
+        }
+
+        .login-details td.value {
+            color: #1a1a2e;
+            font-weight: 600;
+        }
+
+        /* =========================================================
+           Action buttons — side by side
+        ========================================================= */
+        .action-wrapper {
+            margin: 8px 0 28px;
+        }
+
+        .action-wrapper p {
+            font-size: 14px;
+            color: #555577;
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* Yes button — safe, calm green */
+        .btn-yes {
+            display: inline-block;
+            background-color: #10b981;
+            color: #ffffff !important;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 13px 28px;
+            border-radius: 8px;
+            flex: 1;
+            text-align: center;
+        }
+
+        .btn-yes:hover { background-color: #059669; }
+
+        /* No button — urgent, red */
+        .btn-no {
+            display: inline-block;
+            background-color: #ef4444;
+            color: #ffffff !important;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 13px 28px;
+            border-radius: 8px;
+            flex: 1;
+            text-align: center;
+        }
+
+        .btn-no:hover { background-color: #dc2626; }
+
+        /* =========================================================
+           What happens note
+        ========================================================= */
+        .consequence-block {
+            margin: 4px 0 24px;
+        }
+
+        .consequence-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .consequence-item .icon {
+            font-size: 16px;
+            line-height: 1.4;
+            flex-shrink: 0;
+        }
+
+        .consequence-item p {
+            font-size: 13px;
+            color: #666688;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        /* =========================================================
+           Expiry notice
+        ========================================================= */
+        .expiry-notice {
+            background-color: #fffbeb;
+            border-left: 3px solid #f59e0b;
+            border-radius: 4px;
+            padding: 12px 16px;
+            margin: 0 0 24px;
+        }
+
+        .expiry-notice p {
+            font-size: 13px;
+            color: #92400e;
+            margin: 0;
+        }
+
+        .expiry-notice strong {
+            color: #78350f;
+        }
+
+        /* =========================================================
+           Security note
+        ========================================================= */
+        .security-note {
+            padding-top: 20px;
+            border-top: 1px solid #eeeeee;
+        }
+
+        .security-note p {
+            font-size: 13px;
+            color: #999999;
+            line-height: 1.5;
+            margin-bottom: 0;
+        }
+
+        /* =========================================================
+           Footer
+        ========================================================= */
+        .email-footer {
+            background-color: #f4f4f7;
+            padding: 24px 40px;
+            text-align: center;
+        }
+
+        .email-footer p {
+            font-size: 12px;
+            color: #aaaaaa;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        /* =========================================================
+           Mobile
+           Flex does not work in Outlook — fallback handled via
+           table layout in the Outlook conditional comment below
+        ========================================================= */
+        @media only screen and (max-width: 560px) {
+            .email-body    { padding: 28px 24px 24px; }
+            .email-header  { padding: 20px 24px; }
+            .email-footer  { padding: 20px 24px; }
+            .button-row    { flex-direction: column; }
+            .btn-yes,
+            .btn-no        { padding: 13px 20px; font-size: 13px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-wrapper">
+        <div class="email-card">
+
+            <!-- Header -->
+            <div class="email-header">
+                <div class="portal-name">Campus Council Portal &mdash; IIT Kanpur</div>
+                <div class="alert-badge">Security Alert</div>
+            </div>
+
+            <!-- Body -->
+            <div class="email-body">
+                <h1>New login detected</h1>
+
+                <p>
+                    Someone just signed in to your Campus Council Portal account.
+                    Was this you?
+                </p>
+
+                <!-- Login details -->
+                <!--
+                    All values injected by Go html/template at send time.
+                    {{.Browser}}, {{.OS}}, {{.Time}} come from mail_service.go
+                    which extracts them from the request at login time.
+                    Never inject IP — it is useless on campus WiFi and leaks nothing useful.
+                -->
+                <div class="login-details">
+                    <table>
+                        <tr>
+                            <td class="label">Time</td>
+                            <td class="value">{{.LoginTime}}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Browser</td>
+                            <td class="value">{{.Browser}}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Platform</td>
+                            <td class="value">{{.Platform}}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Account</td>
+                            <td class="value">{{.Email}}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Action question -->
+                <div class="action-wrapper">
+                    <p>Confirm whether this login was you:</p>
+
+                    <!--
+                        Outlook does not support flexbox.
+                        Conditional comment below provides table-based fallback.
+                        Modern clients use the flex .button-row above.
+                    -->
+                    <!--[if mso]>
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                    <td width="48%" style="padding-right:6px;">
+                    <![endif]-->
+                    <div class="button-row">
+                        <a href="{{.ConfirmURL}}" class="btn-yes">
+                            ✓ &nbsp; Yes, this was me
+                        </a>
+                    <!--[if mso]>
+                    </td>
+                    <td width="4%"></td>
+                    <td width="48%" style="padding-left:6px;">
+                    <![endif]-->
+                        <a href="{{.InvalidateURL}}" class="btn-no">
+                            ✕ &nbsp; No, kill this session
+                        </a>
+                    </div>
+                    <!--[if mso]>
+                    </td>
+                    </tr>
+                    </table>
+                    <![endif]-->
+                </div>
+
+                <!-- What happens on each action -->
+                <div class="consequence-block">
+                    <div class="consequence-item">
+                        <span class="icon">✓</span>
+                        <p>
+                            <strong>If this was you</strong> — clicking Yes dismisses this alert.
+                            Your session continues normally.
+                        </p>
+                    </div>
+                    <div class="consequence-item">
+                        <span class="icon">✕</span>
+                        <p>
+                            <strong>If this was not you</strong> — clicking No immediately
+                            terminates the session and removes device trust.
+                            You can then log in again safely.
+                            If this keeps happening, your email may be compromised —
+                            contact the portal admin.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Expiry -->
+                <div class="expiry-notice">
+                    <p>
+                        This alert expires at <strong>{{.ExpiresAt}}</strong>.
+                        After that, the Yes and No buttons will no longer work.
+                        If you take no action, the session continues.
+                    </p>
+                </div>
+
+                <!-- Security note -->
+                <div class="security-note">
+                    <p>
+                        This email was sent because a successful login occurred on your account.
+                        Never share this email or its links with anyone.
+                        The portal team will never ask you to forward this.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="email-footer">
+                <p>
+                    Campus Council Portal &mdash; IIT Kanpur<br />
+                    This is an automated security notification. Do not reply to this email.
+                </p>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>
