@@ -42,7 +42,7 @@ INSERT INTO users (
 )
 VALUES (
     uuid_generate_v4(),
-    'super_admin@iitk.ac.in',     -- REPLACE with actual institutional email
+    'rajc25@iitk.ac.in',     -- REPLACE with actual institutional email
     'SUPER_ADMIN',
     TRUE,
     CURRENT_TIMESTAMP,

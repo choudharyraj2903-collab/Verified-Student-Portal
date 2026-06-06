@@ -12,9 +12,12 @@ DROP TABLE IF EXISTS device_trust CASCADE;
 DROP TABLE IF EXISTS refresh_tokens CASCADE;
 DROP TABLE IF EXISTS invalidation_tokens CASCADE;
 DROP TABLE IF EXISTS magic_tokens CASCADE;
+DROP TABLE IF EXISTS verification_requests CASCADE;
+DROP TABLE IF EXISTS profiles CASCADE;
 DROP TABLE IF EXISTS user_council_scopes CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS councils CASCADE;
+DROP TYPE IF EXISTS verification_status_enum CASCADE;
 DROP TYPE IF EXISTS user_role_enum CASCADE;
 DROP TYPE IF EXISTS audit_severity_enum CASCADE;
 DROP TYPE IF EXISTS audit_event_enum CASCADE;
@@ -56,8 +59,25 @@ CREATE TYPE audit_event_enum AS ENUM (
     'LOGOUT_ALL_DEVICES',
     'REPEATED_INVALIDATION_FLAGGED',
     'UNAUTHORIZED_SCOPE_ACCESS',
+    'UNAUTHORIZED_ROLE_ACCESS',
     'RATE_LIMIT_HIT',
+    'RATE_LIMIT_IP_BLOCK',
+    'CAMPUS_IP_GUARD_BLOCK',
+    'PROFILE_CREATED',
+    'PROFILE_UPDATED',
+    'VERIFICATION_SUBMITTED',
+    'VERIFICATION_APPROVED',
+    'VERIFICATION_REJECTED',
+    'VERIFICATION_REQUEST_SUBMITTED',
+    'VERIFICATION_REQUEST_APPROVED',
+    'VERIFICATION_REQUEST_REJECTED',
     'ACCOUNT_DEACTIVATED'
+);
+
+CREATE TYPE verification_status_enum AS ENUM (
+    'PENDING',
+    'APPROVED',
+    'REJECTED'
 );
 
 -- =========================================================================
@@ -80,6 +100,7 @@ CREATE TABLE users (
     email      VARCHAR(255)   UNIQUE NOT NULL,
     role       user_role_enum NOT NULL DEFAULT 'STUDENT',
     is_active  BOOLEAN        NOT NULL DEFAULT TRUE,
+    deactivation_reason TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
 
@@ -92,7 +113,28 @@ CREATE INDEX idx_users_role   ON users(role);
 CREATE INDEX idx_users_active ON users(is_active);
 
 -- =========================================================================
--- 3. USER COUNCIL SCOPES
+-- 3. PROFILES TABLE
+-- =========================================================================
+
+CREATE TABLE profiles (
+    id          UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id     UUID         UNIQUE REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    full_name   VARCHAR(255) NOT NULL,
+    roll_number VARCHAR(50)  UNIQUE NOT NULL,
+    year        INTEGER      NOT NULL CHECK (year BETWEEN 1 AND 5),
+    branch      VARCHAR(100) NOT NULL,
+    phone       VARCHAR(30),
+    avatar_url  TEXT,
+    bio         TEXT,
+    created_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX idx_profiles_user_id     ON profiles(user_id);
+CREATE INDEX idx_profiles_roll_number ON profiles(roll_number);
+
+-- =========================================================================
+-- 4. USER COUNCIL SCOPES
 -- =========================================================================
 
 CREATE TABLE user_council_scopes (
@@ -110,7 +152,33 @@ CREATE INDEX idx_council_scopes_expiry ON user_council_scopes(expires_at)
     WHERE expires_at IS NOT NULL;
 
 -- =========================================================================
--- 4. MAGIC TOKENS TABLE
+-- 5. VERIFICATION REQUESTS TABLE
+-- =========================================================================
+
+CREATE TABLE verification_requests (
+    id          UUID                     PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id     UUID                     REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    council_id  UUID                     REFERENCES councils(id) ON DELETE RESTRICT NOT NULL,
+    title       VARCHAR(255)             NOT NULL,
+    description TEXT                     NOT NULL,
+    proof_link  TEXT                     NOT NULL,
+    por_date    DATE                     NOT NULL,
+    status      verification_status_enum NOT NULL DEFAULT 'PENDING',
+    remarks     TEXT,
+    reviewed_by UUID                     REFERENCES users(id) ON DELETE SET NULL,
+    reviewed_at TIMESTAMP WITH TIME ZONE,
+    created_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+
+    CONSTRAINT check_proof_link_not_blank CHECK (LENGTH(TRIM(proof_link)) > 0)
+);
+
+CREATE INDEX idx_verification_user_status    ON verification_requests(user_id, status);
+CREATE INDEX idx_verification_council_status ON verification_requests(council_id, status);
+CREATE INDEX idx_verification_created_at     ON verification_requests(created_at DESC);
+
+-- =========================================================================
+-- 6. MAGIC TOKENS TABLE
 -- =========================================================================
 
 CREATE TABLE magic_tokens (
@@ -130,7 +198,7 @@ CREATE INDEX idx_magic_tokens_user
     ON magic_tokens(user_id, created_at);
 
 -- =========================================================================
--- 5. INVALIDATION TOKENS TABLE
+-- 7. INVALIDATION TOKENS TABLE
 -- =========================================================================
 
 CREATE TABLE invalidation_tokens (
@@ -150,7 +218,7 @@ CREATE INDEX idx_invalidation_tokens_family
     ON invalidation_tokens(refresh_token_family);
 
 -- =========================================================================
--- 6. REFRESH TOKENS TABLE
+-- 8. REFRESH TOKENS TABLE
 -- =========================================================================
 
 CREATE TABLE refresh_tokens (
@@ -174,7 +242,7 @@ CREATE INDEX idx_refresh_tokens_user
     ON refresh_tokens(user_id, is_revoked);
 
 -- =========================================================================
--- 7. DEVICE TRUST TABLE
+-- 9. DEVICE TRUST TABLE
 -- =========================================================================
 
 CREATE TABLE device_trust (
@@ -200,7 +268,7 @@ CREATE INDEX idx_device_trust_expiry
     WHERE is_revoked = FALSE;
 
 -- =========================================================================
--- 8. AUDIT LOGS TABLE
+-- 10. AUDIT LOGS TABLE
 -- =========================================================================
 
 CREATE TABLE audit_logs (
@@ -235,5 +303,15 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER update_users_updated_at
     BEFORE UPDATE ON users
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_profiles_updated_at
+    BEFORE UPDATE ON profiles
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_verification_requests_updated_at
+    BEFORE UPDATE ON verification_requests
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();

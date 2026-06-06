@@ -1,20 +1,24 @@
-package db 
+package db
 
 import (
 	"context"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5"
 	"fmt"
-	"time"
 	"log"
-	"student_portal/backend/config"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/lib/pq"
+	"student_portal/backend/config"
 )
 
 type DB struct {
 	pool *pgxpool.Pool
-	cfg *config.DatabaseConfig
+	cfg  *config.DatabaseConfig
 }
+
+type Tx = pgx.Tx
 
 // func NewDB(cfg *config.databaseConfig) (*DB, error) {
 
@@ -26,8 +30,8 @@ type DB struct {
 // 	poolConfig.MaxConns        = int32(cfg.MaxOpenConns)
 // 	poolConfig.MinConns        = int32(cfg.MaxIdleConns)
 //     poolConfig.MaxConnLifetime = time.Duration(cfg.ConnMaxLifetimeMinutes) * time.Minute
-//     poolConfig.MaxConnIdleTime = 10 * time.Minute   
-//     poolConfig.HealthCheckPeriod = 1 * time.Minute 
+//     poolConfig.MaxConnIdleTime = 10 * time.Minute
+//     poolConfig.HealthCheckPeriod = 1 * time.Minute
 
 // 	poolConfig.ConnConfig.ConnectTimeout = 10 * time.Second
 
@@ -68,43 +72,37 @@ type DB struct {
 
 // }
 
-
 func NewDB(cfg *config.DatabaseConfig) (*DB, error) {
 	constructingDSN := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s?sslmode=%s",
 		cfg.DB_USER, cfg.DB_PASSWORD, cfg.DB_HOST, cfg.DB_PORT, cfg.DB_NAME, cfg.DB_SSL_MODE)
-    poolConfig, err := pgxpool.ParseConfig(constructingDSN)
-    if err != nil {
-        return nil, fmt.Errorf("failed to parse database config: %v", err)
-    }
+	poolConfig, err := pgxpool.ParseConfig(constructingDSN)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse database config: %v", err)
+	}
 
-    poolConfig.MaxConns        = int32(cfg.DB_MAX_OPEN_CONNS)
-    poolConfig.MinConns        = int32(cfg.DB_MAX_IDLE_CONNS)
-    poolConfig.MaxConnLifetime = time.Duration(cfg.DB_CONN_MAX_LIFETIME_MINUTES) * time.Minute
-    poolConfig.MaxConnIdleTime = 10 * time.Minute
-    poolConfig.HealthCheckPeriod = 1 * time.Minute
-    poolConfig.ConnConfig.ConnectTimeout = 10 * time.Second
+	poolConfig.MaxConns = int32(cfg.DB_MAX_OPEN_CONNS)
+	poolConfig.MinConns = int32(cfg.DB_MAX_IDLE_CONNS)
+	poolConfig.MaxConnLifetime = time.Duration(cfg.DB_CONN_MAX_LIFETIME_MINUTES) * time.Minute
+	poolConfig.MaxConnIdleTime = 10 * time.Minute
+	poolConfig.HealthCheckPeriod = 1 * time.Minute
+	poolConfig.ConnConfig.ConnectTimeout = 10 * time.Second
 
-    poolConfig.BeforeAcquire = func(ctx context.Context, conn *pgx.Conn) bool {
-        return conn.Ping(ctx) == nil
-    }
-    poolConfig.AfterRelease = func(conn *pgx.Conn) bool {
-        return true // Let the pool decide whether to keep or discard based on MaxConnLifetime and MaxConnIdleTime
-    }
+	poolConfig.BeforeAcquire = func(ctx context.Context, conn *pgx.Conn) bool {
+		return conn.Ping(ctx) == nil
+	}
+	poolConfig.AfterRelease = func(conn *pgx.Conn) bool {
+		return true // Let the pool decide whether to keep or discard based on MaxConnLifetime and MaxConnIdleTime
+	}
 
-    pool, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
-    if err != nil {
-        return nil, fmt.Errorf("failed to create database connection pool: %v", err)
-    }
+	pool, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create database connection pool: %v", err)
+	}
 
-    if err := validate(pool); err != nil {
-        pool.Close()
-        return nil, fmt.Errorf("database connection validation failed: %v", err)
-    }
+	log.Printf("DB pool created — maxOpen: %d, minIdle: %d, lifetime: %dm",
+		cfg.DB_MAX_OPEN_CONNS, cfg.DB_MAX_IDLE_CONNS, cfg.DB_CONN_MAX_LIFETIME_MINUTES)
 
-    log.Printf("DB pool created — maxOpen: %d, minIdle: %d, lifetime: %dm",
-        cfg.DB_MAX_OPEN_CONNS, cfg.DB_MAX_IDLE_CONNS, cfg.DB_CONN_MAX_LIFETIME_MINUTES)
-
-    return &DB{pool: pool, cfg: cfg}, nil
+	return &DB{pool: pool, cfg: cfg}, nil
 }
 
 func validate(pool *pgxpool.Pool) error {
@@ -122,12 +120,12 @@ func validate(pool *pgxpool.Pool) error {
 }
 
 type HealthStatus struct {
-    Database      string // "ok" or "unreachable"
-    LatencyMs     int64  // ping latency in ms
-    TotalConns    int32  // total connections in pool
-    IdleConns     int32  // idle connections
-    AcquiredConns int32  // connections currently in use
-    Error         string // empty if ok, error message if not
+	Database      string // "ok" or "unreachable"
+	LatencyMs     int64  // ping latency in ms
+	TotalConns    int32  // total connections in pool
+	IdleConns     int32  // idle connections
+	AcquiredConns int32  // connections currently in use
+	Error         string // empty if ok, error message if not
 }
 
 // func HealthCheck(ctx context.Context) (*HealthStatus, error) {
@@ -147,11 +145,11 @@ type HealthStatus struct {
 // 		IdleConns:     status.IdleConns(),
 // 		AcquiredConns: status.AcquiredConns(),
 // 		Error:         "",
-	
+
 // 		if err != nil {
 // 			status.Database = "unreachable"
 // 			status.Error = err.Error()
-// 		} 
+// 		}
 // 		else {
 // 			status.Database = "ok"
 // 			status.Error = ""
@@ -160,27 +158,26 @@ type HealthStatus struct {
 // }
 
 func (db *DB) HealthCheck(ctx context.Context) (*HealthStatus, error) {
-    start := time.Now()
-    err := validate(db.pool)
-    latency := time.Since(start).Milliseconds()
+	start := time.Now()
+	err := validate(db.pool)
+	latency := time.Since(start).Milliseconds()
 
-    stats := db.pool.Stat()
-    status := &HealthStatus{
-        LatencyMs:     latency,
-        TotalConns:    stats.TotalConns(),
-        IdleConns:     stats.IdleConns(),
-        AcquiredConns: stats.AcquiredConns(),
-    }
+	stats := db.pool.Stat()
+	status := &HealthStatus{
+		LatencyMs:     latency,
+		TotalConns:    stats.TotalConns(),
+		IdleConns:     stats.IdleConns(),
+		AcquiredConns: stats.AcquiredConns(),
+	}
 
-    if err != nil {
-        status.Database = "unreachable"
-        status.Error = err.Error()
-    } else {
-        status.Database = "ok"
-    }
-    return status, nil
+	if err != nil {
+		status.Database = "unreachable"
+		status.Error = err.Error()
+	} else {
+		status.Database = "ok"
+	}
+	return status, nil
 }
-
 
 // func (db *DB) WithTransaction(ctx context.Context, fn func(tx pgx.Tx) error) error {
 
@@ -198,32 +195,43 @@ func (db *DB) HealthCheck(ctx context.Context) (*HealthStatus, error) {
 // 			err = tx.Commit(ctx) // err is nil; if Commit returns error update err
 // 		}
 // 	}()
-	
 
-// 	if err := tx.Commit(ctx); err != nil {
-//     return fmt.Errorf("failed to commit transaction: %w", err)
+//		if err := tx.Commit(ctx); err != nil {
+//	    return fmt.Errorf("failed to commit transaction: %w", err)
+//	}
+//
 // }
-//}
-func (db *DB) WithTransaction(ctx context.Context, fn func(tx pgx.Tx) error) error {
-    tx, err := db.pool.Begin(ctx)
-    if err != nil {
-        return fmt.Errorf("failed to begin transaction: %v", err)
-    }
-    defer func() {
-        if p := recover(); p != nil {
-            tx.Rollback(ctx)
-            panic(p)
-        } else if err != nil {
-            tx.Rollback(ctx)
-        } else {
-            err = tx.Commit(ctx)
-        }
-    }()
+func (db *DB) WithTransaction(ctx context.Context, fn func(tx pgx.Tx) error) (err error) {
+	tx, err := db.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %v", err)
+	}
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback(ctx)
+			panic(p)
+		} else if err != nil {
+			tx.Rollback(ctx)
+		} else {
+			err = tx.Commit(ctx)
+		}
+	}()
 
-    err = fn(tx)
-    return err
+	err = fn(tx)
+	return err
 }
 
+func (db *DB) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
+	return db.pool.Query(ctx, sql, args...)
+}
+
+func (db *DB) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
+	return db.pool.QueryRow(ctx, sql, args...)
+}
+
+func (db *DB) Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+	return db.pool.Exec(ctx, sql, args...)
+}
 
 func (db *DB) Pool() *pgxpool.Pool {
 	return db.pool
