@@ -4,6 +4,8 @@ package tokens
 
 import (
     "time"
+    "errors"
+    "fmt"
 
     "github.com/golang-jwt/jwt/v5"
     "student_portal/backend/config"
@@ -53,17 +55,27 @@ func VerifyAccessToken(tokenString string, cfg *config.JWTConfig) (*Claims, erro
             return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
         }
         return cfg.PublicKey, nil
-    },
-)
+    },)
+
 	if err != nil {
-    if errors.Is(err, jwt.ErrTokenExpired) {
-        return nil, ErrAccessTokenExpired
-    }
-    return nil, ErrAccessTokenInvalid
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, ErrAccessTokenExpired
+		}
+		return nil, ErrAccessTokenInvalid
 	}
-	if !token.Claims.(*Claims).VerifyIssuer(cfg.Issuer, true) {
-    return nil, ErrAccessTokenInvalid
+	// if !token.Claims.(*Claims).VerifiedIssuer(cfg.Issuer, true) {
+	// 	return nil, ErrAccessTokenInvalid
+	// }
+	claims, ok := token.Claims.(*Claims)
+	if !ok {
+		return nil, fmt.Errorf("invalid claims type")
 	}
+	expectedIssuer := cfg.Issuer
+
+	if claims.Issuer != expectedIssuer {
+		return nil, fmt.Errorf("invalid issuer")
+	}
+
 	return token.Claims.(*Claims), nil
 }
 

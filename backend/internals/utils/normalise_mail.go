@@ -11,7 +11,7 @@ func NormaliseMail(email string) string {
 }
 
 func ValidateMailFormat(email string) bool {
-	if string == ""{
+	if email == "" {
 		return false 
 	}
 	if !strings.Contains(email, "@") {
@@ -29,10 +29,5 @@ func ExtractEmailDomain(email string) string {
 
 func ValidateMailDomain(email string, allowedDomain string) bool {
 	domain := ExtractEmailDomain(email)
-	for _, d := range allowedDomain {
-		if d == domain {
-			return true
-		}
-	}
-	return false
+	return allowedDomain == domain
 }

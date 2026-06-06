@@ -2,7 +2,14 @@ package tokens
 
 import (
 	"context"
+	"fmt"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5"
+
+	"student_portal/backend/config"
+	"student_portal/backend/internals/utils"
 )
 
 
@@ -16,11 +23,11 @@ type InvalidationToken struct {
 	CreatedAt             time.Time `json:"created_at" db:"created_at"`
 }
 
-func Issue(ctx context.Context, pool *pgxpool.Pool, userID string, familyID string, cfg *config.AuthConfig) (string, error) {
+func IssueInvalidationToken(ctx context.Context, pool *pgxpool.Pool, userID string, familyID string, cfg *config.AuthConfig) (string, error) {
 
 	// Generate new invalidation token
 	tokenHash := utils.Hash256String(utils.GenerateRandomString(32))
-	expiresAT := time.Now().UTC().Add(time.Duration(cfg.InvalidationTokenExpiryMinutes) * time.Minute)
+	expiresAT := time.Now().UTC().Add(time.Duration(cfg.INVALIDATION_TOKEN_EXPIRY_MINUTES) * time.Minute)
 
 	// Query single row
 	row := pool.QueryRow(ctx,
@@ -36,7 +43,7 @@ func Issue(ctx context.Context, pool *pgxpool.Pool, userID string, familyID stri
 		return "", fmt.Errorf("invalidation token issue failed: %w", err)
 	}
 
-	return token.TokenHash
+	return token.TokenHash,nil
 	
 }
 
