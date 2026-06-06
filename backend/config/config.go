@@ -1,15 +1,16 @@
-package config 
+package config
 
 import (
-	"os"
-	"github.com/joho/godotenv"
-	"strconv"
-	"net"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"io/ioutil"
 	"fmt"
+	"github.com/joho/godotenv"
+	"io/ioutil"
+	"net"
+	"os"
+	"strconv"
 	"strings"
 )
 
@@ -24,86 +25,84 @@ type AppConfig struct {
 }
 
 type ServerConfig struct {
-	APP_ENV string 
-	PORT    int
-	APP_URL string
-	FRONTEND_URL string
+	APP_ENV         string
+	PORT            int
+	APP_URL         string
+	FRONTEND_URL    string
 	ALLOWED_ORIGINS []string
 }
 
-type DatabaseConfig struct{
-	DB_HOST string
-	DB_PORT int
-	DB_USER string
-	DB_PASSWORD string
-	DB_NAME string
-	DB_SSL_MODE string
-	DB_MAX_OPEN_CONNS int
-	DB_MAX_IDLE_CONNS int
+type DatabaseConfig struct {
+	DB_HOST                      string
+	DB_PORT                      int
+	DB_USER                      string
+	DB_PASSWORD                  string
+	DB_NAME                      string
+	DB_SSL_MODE                  string
+	DB_MAX_OPEN_CONNS            int
+	DB_MAX_IDLE_CONNS            int
 	DB_CONN_MAX_LIFETIME_MINUTES int
 }
 
 type RedisConfig struct {
-	REDIS_HOST string
-	REDIS_PORT int
-	REDIS_PASSWORD string
-	REDIS_DB int
+	REDIS_HOST        string
+	REDIS_PORT        int
+	REDIS_PASSWORD    string
+	REDIS_DB          int
 	REDIS_MAX_RETRIES int
-	REDIS_POOL_SIZE int
+	REDIS_POOL_SIZE   int
 }
-
 
 type JWTConfig struct {
-    PrivateKey *rsa.PrivateKey
-    PublicKey  *rsa.PublicKey
-    AccessTokenExpiryMinutes int
-    Issuer string
+	PrivateKey               *rsa.PrivateKey
+	PublicKey                *rsa.PublicKey
+	AccessTokenExpiryMinutes int
+	Issuer                   string
 }
 
-
 type MailConfig struct {
-	MAIL_HOST string
-	MAIL_PORT int
-	MAIL_USERNAME string
-	MAIL_PASSWORD string
+	MAIL_HOST         string
+	MAIL_PORT         int
+	MAIL_USERNAME     string
+	MAIL_PASSWORD     string
 	MAIL_FROM_ADDRESS string
-	MAIL_FROM_NAME string
-	MAIL_ENCRYPTION string
+	MAIL_FROM_NAME    string
+	MAIL_ENCRYPTION   string
 }
 
 type AuthConfig struct {
-	MAGIC_LINK_EXPIRY_MINUTES int
-	MAGIC_LINK_MAX_REQUESTS_PER_HOUR int
-	REFRESH_TOKEN_EXPIRY_DAYS int
-	DEVICE_TOKEN_EXPIRY_DAYS int
+	MAGIC_LINK_EXPIRY_MINUTES         int
+	MAGIC_LINK_MAX_REQUESTS_PER_HOUR  int
+	REFRESH_TOKEN_EXPIRY_DAYS         int
+	DEVICE_TOKEN_EXPIRY_DAYS          int
 	INVALIDATION_TOKEN_EXPIRY_MINUTES int
-	CAPTCHA_THRESHOLD int
-	RATE_LIMIT_IP_MAX_PER_HOUR int
+	CAPTCHA_THRESHOLD                 int
+	RATE_LIMIT_IP_MAX_PER_HOUR        int
 }
 
 type CampusConfig struct {
 	EMAIL_DOMAIN string
-	IP_RANGES []*net.IPNet
+	IP_RANGES    []*net.IPNet
 }
 
 func Env(key, fallback string) string {
-    val := os.Getenv(key)
-    if val == "" {
-        return fallback
-    }
-    return val
+	val := os.Getenv(key)
+	if val == "" {
+		return fallback
+	}
+	return val
 }
 
 func EnvInt(key string, fallback int) int {
-    val := os.Getenv(key)
-    if val == "" {
-        return fallback
-    }
-    i, err := strconv.Atoi(val)
-    if err != nil {
-        return fallback
-    }
-    return i
+	val := os.Getenv(key)
+	if val == "" {
+		return fallback
+	}
+	i, err := strconv.Atoi(val)
+	if err != nil {
+		return fallback
+	}
+	return i
 }
 
 func CutAtComma(s string) []string {
@@ -115,53 +114,52 @@ func CutAtComma(s string) []string {
 	return parts
 }
 func parsePrivateKey(path string) (*rsa.PrivateKey, error) {
-    data, err := ioutil.ReadFile(path)
-    if err != nil {
-        return nil, fmt.Errorf("cannot read private key: %v", err)
-    }
-    block, _ := pem.Decode(data)
-    if block == nil {
-        return nil, fmt.Errorf("invalid PEM in private key")
-    }
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read private key: %v", err)
+	}
+	block, _ := pem.Decode(data)
+	if block == nil {
+		return nil, fmt.Errorf("invalid PEM in private key")
+	}
 
-    // Try PKCS#1 first
-    if key, err := x509.ParsePKCS1PrivateKey(block.Bytes); err == nil {
-        return key, nil
-    }
+	// Try PKCS#1 first
+	if key, err := x509.ParsePKCS1PrivateKey(block.Bytes); err == nil {
+		return key, nil
+	}
 
-    // Fallback to PKCS#8
-    priv, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-    if err != nil {
-        return nil, fmt.Errorf("invalid RSA private key: %v", err)
-    }
-    rsaKey, ok := priv.(*rsa.PrivateKey)
-    if !ok {
-        return nil, fmt.Errorf("not an RSA private key")
-    }
-    return rsaKey, nil
+	// Fallback to PKCS#8
+	priv, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("invalid RSA private key: %v", err)
+	}
+	rsaKey, ok := priv.(*rsa.PrivateKey)
+	if !ok {
+		return nil, fmt.Errorf("not an RSA private key")
+	}
+	return rsaKey, nil
 }
-
 
 func parsePublicKey(path string) (*rsa.PublicKey, error) {
-    data, err := ioutil.ReadFile(path)
-    if err != nil {
-        return nil, fmt.Errorf("JWT_PUBLIC_KEY_PATH (%s) not readable: %v", path, err)
-    }
-    block, _ := pem.Decode(data)
-    if block == nil {
-        return nil, fmt.Errorf("JWT_PUBLIC_KEY_PATH (%s) invalid PEM", path)
-    }
-    pub, err := x509.ParsePKIXPublicKey(block.Bytes)
-    if err != nil {
-        return nil, fmt.Errorf("JWT_PUBLIC_KEY_PATH (%s) invalid RSA public key: %v", path, err)
-    }
-    rsaPub, ok := pub.(*rsa.PublicKey)
-    if !ok {
-        return nil, fmt.Errorf("JWT_PUBLIC_KEY_PATH (%s) is not RSA", path)
-    }
-    return rsaPub, nil
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("JWT_PUBLIC_KEY_PATH (%s) not readable: %v", path, err)
+	}
+	block, _ := pem.Decode(data)
+	if block == nil {
+		return nil, fmt.Errorf("JWT_PUBLIC_KEY_PATH (%s) invalid PEM", path)
+	}
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("JWT_PUBLIC_KEY_PATH (%s) invalid RSA public key: %v", path, err)
+	}
+	rsaPub, ok := pub.(*rsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("JWT_PUBLIC_KEY_PATH (%s) is not RSA", path)
+	}
+	return rsaPub, nil
 }
-func LoadServerConfig() (ServerConfig,error) {
+func LoadServerConfig() (ServerConfig, error) {
 	// Load server configuration from environment variables or config file
 	AppEnv := Env("APP_ENV", "development")
 	Port := EnvInt("PORT", 8080)
@@ -198,11 +196,17 @@ func LoadRedisConfig() (RedisConfig, error) {
 
 func LoadJWTConfig() (JWTConfig, error) {
 	// Load JWT configuration from environment variables or config file
-	JWTPrivateKeyPath , err:= parsePrivateKey(Env("JWT_PRIVATE_KEY_PATH", "keys/jwt_private_key.pem"))
+	JWTPrivateKeyPath, err := parsePrivateKey(Env("JWT_PRIVATE_KEY_PATH", "keys/jwt_private_key.pem"))
 	if err != nil {
-		return JWTConfig{}, fmt.Errorf("failed to parse JWT private key: %v", err)
+		privateKey, genErr := rsa.GenerateKey(rand.Reader, 2048)
+		if genErr != nil {
+			return JWTConfig{}, fmt.Errorf("failed to parse JWT private key: %v", err)
+		}
+		JWTAccessTokenExpiryMinutes := EnvInt("JWT_ACCESS_TOKEN_EXPIRY_MINUTES", 15)
+		JWTIssuer := Env("JWT_ISSUER", "student_portal")
+		return JWTConfig{privateKey, &privateKey.PublicKey, JWTAccessTokenExpiryMinutes, JWTIssuer}, nil
 	}
-	JWTPublicKeyPath , err := parsePublicKey(Env("JWT_PUBLIC_KEY_PATH", "keys/jwt_public_key.pem"))
+	JWTPublicKeyPath, err := parsePublicKey(Env("JWT_PUBLIC_KEY_PATH", "keys/jwt_public_key.pem"))
 	if err != nil {
 		return JWTConfig{}, fmt.Errorf("failed to parse JWT public key: %v", err)
 	}
@@ -242,27 +246,23 @@ func LoadAuthConfig() (AuthConfig, error) {
 // 	return CampusConfig{EmailDomain, IPRanges}, nil
 // }
 func LoadCampusConfig() (CampusConfig, error) {
-    domain := Env("EMAIL_DOMAIN", "iitk.ac.in")
-    ranges := Env("IP_RANGES", "10.0.0.0/8,172.16.0.0/12")
-    parts := CutAtComma(ranges)
-    var nets []*net.IPNet
-    for _, r := range parts {
-        _, ipnet, err := net.ParseCIDR(r)
-        if err != nil {
-            return CampusConfig{}, fmt.Errorf("invalid CIDR %s: %v", r, err)
-        }
-        nets = append(nets, ipnet)
-    }
-    return CampusConfig{domain, nets}, nil
+	domain := Env("EMAIL_DOMAIN", "iitk.ac.in")
+	ranges := Env("IP_RANGES", "10.0.0.0/8,172.16.0.0/12")
+	parts := CutAtComma(ranges)
+	var nets []*net.IPNet
+	for _, r := range parts {
+		_, ipnet, err := net.ParseCIDR(r)
+		if err != nil {
+			return CampusConfig{}, fmt.Errorf("invalid CIDR %s: %v", r, err)
+		}
+		nets = append(nets, ipnet)
+	}
+	return CampusConfig{domain, nets}, nil
 }
-
 
 func LoadAppConfig() (AppConfig, error) {
 	// Load all configurations and return as AppConfig struct
-	err := godotenv.Load()
-	if err != nil {
-		return AppConfig{}, err
-	}
+	_ = godotenv.Load()
 	serverConfig, err := LoadServerConfig()
 	if err != nil {
 		return AppConfig{}, err
@@ -292,14 +292,13 @@ func LoadAppConfig() (AppConfig, error) {
 		return AppConfig{}, err
 	}
 	return AppConfig{
-    Server:   serverConfig,
-    Database: databaseConfig,
-    Redis:    redisConfig,
-    JWT:      jwtConfig,
-    Mail:     mailConfig,
-    Auth:     authConfig,
-    Campus:   campusConfig,
+		Server:   serverConfig,
+		Database: databaseConfig,
+		Redis:    redisConfig,
+		JWT:      jwtConfig,
+		Mail:     mailConfig,
+		Auth:     authConfig,
+		Campus:   campusConfig,
 	}, nil
 
 }
-
