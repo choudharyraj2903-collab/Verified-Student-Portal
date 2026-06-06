@@ -4,7 +4,7 @@ package mail
 import (
 	"crypto/tls"
 	"fmt"
-	
+
 	"github.com/go-gomail/gomail"
 	"student_portal/backend/config"
 )
@@ -29,36 +29,36 @@ type Message struct {
 }
 
 func NewMailer(cfg *config.MailConfig) (*Mailer, error){
-	Dailer := gomail.NewDialer(cfg.MAIL_HOST, cfg.MAIL_PORT, cfg.MAIL_USERNAME, cfg.MAIL_PASSWORD)
-	switch cfg.Encryption {
+	dailer := gomail.NewDialer(cfg.MAIL_HOST, cfg.MAIL_PORT, cfg.MAIL_USERNAME, cfg.MAIL_PASSWORD)
+	switch cfg.MAIL_ENCRYPTION {
 		case "tls":
-			dialer.SSL = true          // port 465 — full TLS from the start
+			dailer.SSL = true          // port 465 — full TLS from the start
 		case "starttls":
-			dialer.SSL = false         // port 587 — starts plain, upgrades via STARTTLS
-            dialer.TLSConfig = &tls.Config{
-                ServerName: cfg.Host,
+			dailer.SSL = false         // port 587 — starts plain, upgrades via STARTTLS
+            dailer.TLSConfig = &tls.Config{
+                ServerName: cfg.MAIL_HOST,
                 MinVersion: tls.VersionTLS12,   // reject TLS 1.0 and 1.1
 				}
         case "none":
-			dialer.SSL = false         // port 25 — only for local dev, blocked in prod by config validation
+			dailer.SSL = false         // port 25 — only for local dev, blocked in prod by config validation
 			}
 	
 	
-	return &Mailer{cfg.MAIL_HOST, cfg.MAIL_PORT, cfg.MAIL_USERNAME, cfg.MAIL_PASSWORD, cfg.MAIL_FROM_ADDRESS, cfg.MAIL_FROM_NAME, cfg.MAIL_ENCRYPTION, dialer}, nil
+	return &Mailer{cfg.MAIL_HOST, cfg.MAIL_PORT, cfg.MAIL_USERNAME, cfg.MAIL_PASSWORD, cfg.MAIL_FROM_ADDRESS, cfg.MAIL_FROM_NAME, cfg.MAIL_ENCRYPTION, dailer}, nil
 }
 
 func (m *Mailer) Send(msg *Message) error {
 	gm := gomail.NewMessage()
 	gm.SetAddressHeader("From", m.fromAddr, m.fromName)
-	gm.SetHeader("To", msg.To)
-	gm.SetHeader("Subject", msg.Subject)
+	gm.SetHeader("To", msg.to)
+	gm.SetHeader("Subject", msg.subject)
 	gm.SetHeader("X-Mailer", "CampusCouncilPortal/1.0")    // identifies sender in headers
 	gm.SetHeader("X-Priority", "1")                         // for Was This You — marks as high priority
 
-	gm.SetBody("text/plain", msg.TextBody)
-	gm.AddAlternative("text/html", msg.HTMLBody)
+	gm.SetBody("text/plain", msg.textBody)
+	gm.AddAlternative("text/html", msg.htmlBody)
 	if err := m.dialer.DialAndSend(gm); err != nil {
-		return fmt.Errorf("failed to send email to %s: %w", msg.To, err)
+		return fmt.Errorf("failed to send email to %s: %w", msg.to, err)
 	}
 	return nil
 }
