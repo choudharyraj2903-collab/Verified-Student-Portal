@@ -77,10 +77,7 @@ func (s *AuthService) RequestMagicLink(email string, r *http.Request) error {
 		return fmt.Errorf("magic token store failed: %w", err)
 	}
 
-	// Build full URL and send email
-	// APP_URL is the correct config field — no MAGIC_LINK_BASE_URL field exists
-	magicURL := tokens.BuildMagicLinkURL(s.cfg.Server.APP_URL, result.RawToken)
-	if err := s.mail.SendMagicLink(email, magicURL, result.ExpiresAt); err != nil {
+	if err := s.mail.SendMagicLink(email, result.RawToken, result.ExpiresAt); err != nil {
 		return fmt.Errorf("send magic link failed: %w", err)
 	}
 

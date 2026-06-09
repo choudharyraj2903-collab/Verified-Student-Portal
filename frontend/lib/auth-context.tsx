@@ -44,6 +44,9 @@ async function detectRole(): Promise<{ role: UserRole | null; profile: ProfileRe
   if (profileRes.success && profileRes.data?.profile) {
     return { role: "STUDENT", profile: profileRes.data, councilCodes: [] };
   }
+  if (profileRes.error?.code === "PROFILE_NOT_FOUND") {
+    return { role: "STUDENT", profile: null, councilCodes: [] };
+  }
 
   // Try admin endpoints
   const adminRes = await api.get("/admin/students?page=1");

@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 
@@ -53,13 +54,19 @@ func NewAuthenticator(database *db.DB, cfg *config.AppConfig, al *AuditLogger) *
 func (a *Authenticator) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		// Step 1 — Extract Bearer token from Authorization header
+		// Step 1 — Extract the access token from the Bearer header or HttpOnly cookie.
+		tokenString := ""
 		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		if strings.HasPrefix(authHeader, "Bearer ") {
+			tokenString = strings.TrimPrefix(authHeader, "Bearer ")
+		} else if cookie, err := r.Cookie("access_token"); err == nil {
+			tokenString = cookie.Value
+		}
+		if tokenString == "" {
+			a.logAuthFailure("missing_access_token")
 			utils.SendUnauthorized(w)
 			return
 		}
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
 		// Step 2 — Verify JWT signature, algorithm, expiry, issuer
 		claims, err := tokens.VerifyAccessToken(tokenString, &a.cfg.JWT)
@@ -67,9 +74,11 @@ func (a *Authenticator) Authenticate(next http.Handler) http.Handler {
 			if errors.Is(err, tokens.ErrAccessTokenExpired) {
 				// Return specific code so frontend knows to attempt refresh
 				// rather than redirect to login
+				a.logAuthFailure("access_token_expired")
 				utils.SendError(w, http.StatusUnauthorized, "token expired", "TOKEN_EXPIRED")
 				return
 			}
+			a.logAuthFailure("invalid_access_token")
 			utils.SendUnauthorized(w)
 			return
 		}
@@ -78,10 +87,12 @@ func (a *Authenticator) Authenticate(next http.Handler) http.Handler {
 		// JWT is stateless — it cannot know if user was deactivated after issuance
 		user, err := a.getUserFromDB(r.Context(), claims.Subject)
 		if err != nil {
+			a.logAuthFailure("user_lookup_failed")
 			utils.SendUnauthorized(w)
 			return
 		}
 		if !user.IsActive {
+			a.logAuthFailure("inactive_user")
 			utils.SendUnauthorized(w)
 			return
 		}
@@ -95,11 +106,12 @@ func (a *Authenticator) Authenticate(next http.Handler) http.Handler {
 				Severity:  "WARN",
 				UserID:    user.ID,
 				Metadata: map[string]any{
-					"reason":      "role_mismatch",
-					"token_role":  claims.Role,
-					"db_role":     user.Role,
+					"reason":     "role_mismatch",
+					"token_role": claims.Role,
+					"db_role":    user.Role,
 				},
 			})
+			a.logAuthFailure("role_mismatch")
 			utils.SendUnauthorized(w)
 			return
 		}
@@ -124,6 +136,7 @@ func (a *Authenticator) Authenticate(next http.Handler) http.Handler {
 					"db_scopes":    dbScopes,
 				},
 			})
+			a.logAuthFailure("scope_mismatch")
 			utils.SendUnauthorized(w)
 			return
 		}
@@ -136,6 +149,7 @@ func (a *Authenticator) Authenticate(next http.Handler) http.Handler {
 			// Only check if a stored hash exists
 			// If no refresh token found (e.g. fresh session edge case) — skip check
 			if !utils.FingerprintMatch(r, storedHash) {
+				a.logAuthFailure("fingerprint_mismatch")
 				utils.SendUnauthorized(w)
 				return
 			}
@@ -153,6 +167,12 @@ func (a *Authenticator) Authenticate(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), contextKeyUser, authedUser)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func (a *Authenticator) logAuthFailure(reason string) {
+	if a.cfg != nil && a.cfg.Server.APP_ENV == "development" {
+		log.Printf("auth failed: %s", reason)
+	}
 }
 
 // =========================================================================

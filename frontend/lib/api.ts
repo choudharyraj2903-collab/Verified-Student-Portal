@@ -1,17 +1,22 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+const ADMIN_API_URL = process.env.NEXT_PUBLIC_ADMIN_API_URL ?? API_URL;
 
 export type ApiResponse<T = unknown> = {
   success: boolean;
   message: string;
   data: T;
-  error?: string;
+  error?: {
+    code: string;
+    detail?: string;
+  };
 };
 
 async function request<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
-  const res = await fetch(`${API_URL}${path}`, {
+  const baseURL = path.startsWith("/admin") ? ADMIN_API_URL : API_URL;
+  const res = await fetch(`${baseURL}${path}`, {
     credentials: "include",
     headers: { "Content-Type": "application/json", ...options.headers },
     ...options,

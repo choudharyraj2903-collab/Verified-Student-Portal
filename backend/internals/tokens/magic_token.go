@@ -118,9 +118,9 @@ func Verify(ctx context.Context, pool *pgxpool.Pool, rawToken string, r *http.Re
 	}, nil
 }
 
-// BuildMagicLinkURL constructs the link
+// BuildMagicLinkURL constructs the link pointing to the frontend verify page
 func BuildMagicLinkURL(baseURL string, rawToken string) string {
-	return fmt.Sprintf("%s?token=%s", baseURL, rawToken)
+	return fmt.Sprintf("%s/auth/verify?token=%s", baseURL, rawToken)
 }
 
 // Common errors

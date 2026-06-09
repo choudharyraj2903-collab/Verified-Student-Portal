@@ -75,7 +75,7 @@ func main() {
 	}
 
 	authService := auth.NewAuthService(dbConn, &cfg, mailService)
-	auth.RegisterAuthRoutes(router, auth.NewAuthHandler(authService, auditLogger), authenticator)
+	auth.RegisterAuthRoutes(router, auth.NewAuthHandler(authService, auditLogger, cfg.Server.FRONTEND_URL), authenticator)
 
 	councilsService := councils.NewCouncilsService(dbConn.Pool())
 	councils.RegisterCouncilsRoutes(router, councils.NewCouncilsHandler(councilsService))

@@ -15,10 +15,11 @@ import (
 type AuthHandler struct {
 	authService *AuthService
 	auditLogger *middleware.AuditLogger
+	frontendURL string
 }
 
-func NewAuthHandler(service *AuthService, auditLogger *middleware.AuditLogger) *AuthHandler {
-	return &AuthHandler{authService: service, auditLogger: auditLogger}
+func NewAuthHandler(service *AuthService, auditLogger *middleware.AuditLogger, frontendURL string) *AuthHandler {
+	return &AuthHandler{authService: service, auditLogger: auditLogger, frontendURL: frontendURL}
 }
 
 func (h *AuthHandler) RequestLink(w http.ResponseWriter, r *http.Request) error {
@@ -64,13 +65,13 @@ func (h *AuthHandler) VerifyLink(w http.ResponseWriter, r *http.Request) error {
 	rawToken := r.URL.Query().Get("token")
 	result, err := h.authService.VerifyMagicLink(rawToken, r)
 	if err != nil {
-		http.Redirect(w, r, "/auth/login?error=invalid_link", http.StatusFound)
+		http.Redirect(w, r, h.frontendURL+"/auth/login?error=invalid_link", http.StatusFound)
 		return nil
 	}
 
-	http.SetCookie(w, &http.Cookie{Name: "access_token", Value: result.AccessToken, HttpOnly: true, Path: "/", MaxAge: 900})
-	http.SetCookie(w, &http.Cookie{Name: "refresh_token", Value: result.RefreshToken, HttpOnly: true, Path: "/", MaxAge: 2592000})
-	http.SetCookie(w, &http.Cookie{Name: "device_token", Value: result.DeviceToken, HttpOnly: true, Path: "/", MaxAge: 2592000})
+	http.SetCookie(w, &http.Cookie{Name: "access_token", Value: result.AccessToken, HttpOnly: true, Path: "/", MaxAge: 900, SameSite: http.SameSiteLaxMode})
+	http.SetCookie(w, &http.Cookie{Name: "refresh_token", Value: result.RefreshToken, HttpOnly: true, Path: "/", MaxAge: 2592000, SameSite: http.SameSiteLaxMode})
+	http.SetCookie(w, &http.Cookie{Name: "device_token", Value: result.DeviceToken, HttpOnly: true, Path: "/", MaxAge: 2592000, SameSite: http.SameSiteLaxMode})
 
 	ctx := middleware.SetAuditEvent(r.Context(), &middleware.AuditEvent{
 		EventType: "LOGIN_SUCCESS",
@@ -80,7 +81,7 @@ func (h *AuthHandler) VerifyLink(w http.ResponseWriter, r *http.Request) error {
 	})
 	r = r.WithContext(ctx)
 
-	http.Redirect(w, r, "/dashboard", http.StatusFound)
+	http.Redirect(w, r, h.frontendURL+"/dashboard", http.StatusFound)
 	return nil
 }
 
@@ -100,8 +101,8 @@ func (h *AuthHandler) RefreshSession(w http.ResponseWriter, r *http.Request) err
 		return nil
 	}
 
-	http.SetCookie(w, &http.Cookie{Name: "access_token", Value: result.AccessToken, HttpOnly: true, Path: "/", MaxAge: 900})
-	http.SetCookie(w, &http.Cookie{Name: "refresh_token", Value: result.RefreshToken, HttpOnly: true, Path: "/", MaxAge: 2592000})
+	http.SetCookie(w, &http.Cookie{Name: "access_token", Value: result.AccessToken, HttpOnly: true, Path: "/", MaxAge: 900, SameSite: http.SameSiteLaxMode})
+	http.SetCookie(w, &http.Cookie{Name: "refresh_token", Value: result.RefreshToken, HttpOnly: true, Path: "/", MaxAge: 2592000, SameSite: http.SameSiteLaxMode})
 
 	ctx := middleware.SetAuditEvent(r.Context(), &middleware.AuditEvent{
 		EventType: "TOKEN_ROTATION",
@@ -184,6 +185,6 @@ func (h *AuthHandler) InvalidateSession(w http.ResponseWriter, r *http.Request) 
 func clearAllCookies(w http.ResponseWriter) {
 	expired := time.Now().Add(-time.Hour)
 	for _, name := range []string{"access_token", "refresh_token", "device_token"} {
-		http.SetCookie(w, &http.Cookie{Name: name, Value: "", Path: "/", Expires: expired, MaxAge: -1})
+		http.SetCookie(w, &http.Cookie{Name: name, Value: "", Path: "/", Expires: expired, MaxAge: -1, SameSite: http.SameSiteLaxMode})
 	}
 }

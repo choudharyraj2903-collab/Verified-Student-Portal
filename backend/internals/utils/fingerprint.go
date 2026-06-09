@@ -33,7 +33,10 @@ func ExtractFingerprints(r *http.Request) FingerprintData {
 }
 
 func BuildFingerprintString(fp FingerprintData) string {
-	return fp.UserAgent + "|" + fp.AcceptLanguage + "|" + fp.AcceptEncoding + "|" + fp.Platform + "|" + fp.UAMobile + "|" + fp.UABranded
+	// Use only User-Agent — it is stable across browser navigation and fetch() calls.
+	// Accept-Language/Accept-Encoding differ between navigation and fetch requests,
+	// which causes false fingerprint mismatches in the auth middleware.
+	return fp.UserAgent
 }
 
 func HashFingerprint(fp string) string {
