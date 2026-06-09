@@ -72,7 +72,7 @@ func SendValidationError(w http.ResponseWriter, detail string, cfg *config.AppCo
     w.WriteHeader(http.StatusBadRequest)
 
     apiErr := &APIError{Code: "VALIDATION_ERROR"}
-    if cfg.IsDevelopment() {
+    if cfg != nil && cfg.Server.APP_ENV == "development" {
         apiErr.Detail = detail
     }
 
@@ -92,7 +92,7 @@ func SendInternalError(w http.ResponseWriter, err error, cfg *config.AppConfig) 
     w.WriteHeader(http.StatusInternalServerError)
 
     apiErr := &APIError{Code: "INTERNAL_ERROR"}
-    if cfg.IsDevelopment() {
+    if cfg != nil && cfg.Server.APP_ENV == "development" {
         apiErr.Detail = err.Error()
     }
 

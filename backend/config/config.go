@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -262,7 +263,18 @@ func LoadCampusConfig() (CampusConfig, error) {
 
 func LoadAppConfig() (AppConfig, error) {
 	// Load all configurations and return as AppConfig struct
-	_ = godotenv.Load()
+	// Walk up from CWD until we find a .env file (handles any invocation path)
+	dir, _ := os.Getwd()
+	for {
+		if err := godotenv.Load(filepath.Join(dir, ".env")); err == nil {
+			break
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break // reached filesystem root
+		}
+		dir = parent
+	}
 	serverConfig, err := LoadServerConfig()
 	if err != nil {
 		return AppConfig{}, err

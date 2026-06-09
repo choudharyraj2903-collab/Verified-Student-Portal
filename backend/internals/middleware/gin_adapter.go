@@ -11,42 +11,46 @@ import (
 // Adapter for RequireRole
 func (az *Authorizer) GinRequireRole(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Wrap Gin context into net/http style
+		blocked := false
 		handler := az.RequireRole(roles...)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			c.Next() // continue Gin chain
+			// only reached if RequireRole allowed the request through
 		}))
 		handler.ServeHTTP(c.Writer, c.Request)
 
-		// If blocked, stop Gin chain
 		if c.Writer.Status() == http.StatusForbidden || c.Writer.Status() == http.StatusUnauthorized {
-			c.Abort()
+			blocked = true
 		}
+		if blocked {
+			c.Abort()
+			return
+		}
+		c.Next()
 	}
 }
 
 // Adapter for RequireCouncilScope
 func (az *Authorizer) GinRequireCouncilScope(param string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		handler := az.RequireCouncilScope(param)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			c.Next()
-		}))
+		handler := az.RequireCouncilScope(param)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 		handler.ServeHTTP(c.Writer, c.Request)
 		if c.Writer.Status() == http.StatusForbidden || c.Writer.Status() == http.StatusUnauthorized {
 			c.Abort()
+			return
 		}
+		c.Next()
 	}
 }
 
 // Adapter for RequireReAuth
 func (az *Authorizer) GinRequireReAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		handler := az.RequireReAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			c.Next()
-		}))
+		handler := az.RequireReAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 		handler.ServeHTTP(c.Writer, c.Request)
 		if c.Writer.Status() == http.StatusForbidden {
 			c.Abort()
+			return
 		}
+		c.Next()
 	}
 }
 func GinMiddleware(mw func(http.Handler) http.Handler) gin.HandlerFunc {

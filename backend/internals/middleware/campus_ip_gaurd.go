@@ -30,8 +30,20 @@ func NewCampusIPGuard(cfg *config.AppConfig, al *AuditLogger) (*CampusIPGuard, e
 		return nil, fmt.Errorf("campus IP guard requires at least one IP range in CAMPUS_IP_RANGES")
 	}
 
+	ranges := cfg.Campus.IP_RANGES
+
+	// In development, also allow loopback so local testing works
+	if cfg.Server.APP_ENV == "development" {
+		for _, cidr := range []string{"127.0.0.1/8", "::1/128"} {
+			_, ipnet, err := net.ParseCIDR(cidr)
+			if err == nil {
+				ranges = append(ranges, ipnet)
+			}
+		}
+	}
+
 	return &CampusIPGuard{
-		allowedRanges: cfg.Campus.IP_RANGES,
+		allowedRanges: ranges,
 		auditLogger:   al,
 	}, nil
 }

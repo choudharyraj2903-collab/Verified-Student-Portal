@@ -30,6 +30,11 @@ func main() {
 	}
 	defer dbConn.Close()
 
+	if err := dbConn.RunMigrations(); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+	log.Println("Database schema applied")
+
 	router := gin.Default()
 
 	// CORS — allow frontend origin with credentials

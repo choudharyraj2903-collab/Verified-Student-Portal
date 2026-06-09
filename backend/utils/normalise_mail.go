@@ -1,18 +1,16 @@
-package utils 
+package utils
 
 import (
 	"strings"
 )
 
 func NormaliseMail(email string) string {
-	email = strings.ToLower(email)
-	email = strings.TrimSpace(email)
-	return email
+	return strings.TrimSpace(strings.ToLower(email))
 }
 
 func ValidateMailFormat(email string) bool {
-	if string == ""{
-		return false 
+	if email == "" {
+		return false
 	}
 	if !strings.Contains(email, "@") {
 		return false
@@ -24,15 +22,13 @@ func ValidateMailFormat(email string) bool {
 }
 
 func ExtractEmailDomain(email string) string {
-	return strings.Split(email, "@")[1]
+	parts := strings.SplitN(email, "@", 2)
+	if len(parts) != 2 {
+		return ""
+	}
+	return parts[1]
 }
 
 func ValidateMailDomain(email string, allowedDomain string) bool {
-	domain := ExtractEmailDomain(email)
-	for _, d := range allowedDomain {
-		if d == domain {
-			return true
-		}
-	}
-	return false
+	return ExtractEmailDomain(email) == allowedDomain
 }

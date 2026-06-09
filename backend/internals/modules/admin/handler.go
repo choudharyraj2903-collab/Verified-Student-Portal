@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
 	"student_portal/backend/internals/middleware"
 	"student_portal/backend/internals/utils"
 )
@@ -56,7 +55,7 @@ func (h *AdminHandler) ListCouncilAdmins(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *AdminHandler) RemoveCouncilAdmin(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	id := r.PathValue("id")
 	if err := h.adminService.RemoveCouncilAdmin(id); err != nil {
 		utils.SendInternalError(w, err, nil)
 		return
@@ -88,7 +87,7 @@ func (h *AdminHandler) ListAllStudents(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminHandler) GetStudentDetail(w http.ResponseWriter, r *http.Request) {
-	studentID := chi.URLParam(r, "id")
+	studentID := r.PathValue("id")
 	user, ok := middleware.UserFromContext(r.Context())
 	if !ok {
 		utils.SendUnauthorized(w)
@@ -104,7 +103,7 @@ func (h *AdminHandler) GetStudentDetail(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *AdminHandler) DeactivateStudent(w http.ResponseWriter, r *http.Request) {
-	studentID := chi.URLParam(r, "id")
+	studentID := r.PathValue("id")
 	var req struct {
 		Reason string `json:"reason"`
 	}
@@ -139,7 +138,7 @@ func (h *AdminHandler) AdminApprove(w http.ResponseWriter, r *http.Request) {
 		utils.SendUnauthorized(w)
 		return
 	}
-	id := chi.URLParam(r, "id")
+	id := r.PathValue("id")
 	var req struct {
 		Remarks string `json:"remarks"`
 	}
@@ -159,7 +158,7 @@ func (h *AdminHandler) AdminReject(w http.ResponseWriter, r *http.Request) {
 		utils.SendUnauthorized(w)
 		return
 	}
-	id := chi.URLParam(r, "id")
+	id := r.PathValue("id")
 	var req struct {
 		Remarks string `json:"remarks"`
 	}
@@ -181,7 +180,7 @@ func (h *AdminHandler) AdminReject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminHandler) GenerateStudentReport(w http.ResponseWriter, r *http.Request) {
-	studentID := chi.URLParam(r, "id")
+	studentID := r.PathValue("id")
 	user, ok := middleware.UserFromContext(r.Context())
 	if !ok {
 		utils.SendUnauthorized(w)
