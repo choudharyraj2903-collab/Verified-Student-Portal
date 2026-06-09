@@ -22,11 +22,21 @@ A security-first platform for students to request and manage verification of the
    cp .env.example .env
    ```
 3. Configure your database, mail, and JWT settings in `.env`.
-4. Install dependencies:
+4. Generate RSA keys for JWT (RS256):
+   ```bash
+   mkdir -p backend/keys
+   # Generate private key
+   openssl genrsa -out backend/keys/private.pem 2048
+   # Extract public key
+   openssl rsa -in backend/keys/private.pem -pubout -out backend/keys/public.pem
+   ```
+   *Note: `private.pem` is ignored by git for security. `public.pem` can be committed if needed, but ensure you generate your own pair for local development.*
+
+5. Install dependencies:
    ```bash
    go mod download
    ```
-5. Run the server (migrations will run automatically):
+6. Run the server (migrations will run automatically):
    ```bash
    go run main.go
    ```
