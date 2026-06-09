@@ -176,7 +176,7 @@ func LoadDatabaseConfig() (DatabaseConfig, error) {
 
 func LoadJWTConfig() (JWTConfig, error) {
 	// Load JWT configuration from environment variables or config file
-	JWTPrivateKeyPath, err := parsePrivateKey(Env("JWT_PRIVATE_KEY_PATH", "keys/jwt_private_key.pem"))
+	JWTPrivateKeyPath, err := parsePrivateKey(Env("JWT_PRIVATE_KEY_PATH", "keys/private.pem"))
 	if err != nil {
 		privateKey, genErr := rsa.GenerateKey(rand.Reader, 2048)
 		if genErr != nil {
@@ -186,7 +186,7 @@ func LoadJWTConfig() (JWTConfig, error) {
 		JWTIssuer := Env("JWT_ISSUER", "student_portal")
 		return JWTConfig{privateKey, &privateKey.PublicKey, JWTAccessTokenExpiryMinutes, JWTIssuer}, nil
 	}
-	JWTPublicKeyPath, err := parsePublicKey(Env("JWT_PUBLIC_KEY_PATH", "keys/jwt_public_key.pem"))
+	JWTPublicKeyPath, err := parsePublicKey(Env("JWT_PUBLIC_KEY_PATH", "keys/public.pem"))
 	if err != nil {
 		return JWTConfig{}, fmt.Errorf("failed to parse JWT public key: %v", err)
 	}
