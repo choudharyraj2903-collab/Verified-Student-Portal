@@ -18,7 +18,6 @@ import (
 type AppConfig struct {
 	Server   ServerConfig
 	Database DatabaseConfig
-	Redis    RedisConfig
 	JWT      JWTConfig
 	Mail     MailConfig
 	Auth     AuthConfig
@@ -43,15 +42,6 @@ type DatabaseConfig struct {
 	DB_MAX_OPEN_CONNS            int
 	DB_MAX_IDLE_CONNS            int
 	DB_CONN_MAX_LIFETIME_MINUTES int
-}
-
-type RedisConfig struct {
-	REDIS_HOST        string
-	REDIS_PORT        int
-	REDIS_PASSWORD    string
-	REDIS_DB          int
-	REDIS_MAX_RETRIES int
-	REDIS_POOL_SIZE   int
 }
 
 type JWTConfig struct {
@@ -184,17 +174,6 @@ func LoadDatabaseConfig() (DatabaseConfig, error) {
 	return DatabaseConfig{DBHost, DBPort, DBUser, DBPassword, DBName, DBSSLMode, DBMaxOpenConns, DBMaxIdleConns, DBConnMaxLifetimeMinutes}, nil
 }
 
-func LoadRedisConfig() (RedisConfig, error) {
-	// Load Redis configuration from environment variables or config file
-	RedisHost := Env("REDIS_HOST", "localhost")
-	RedisPort := EnvInt("REDIS_PORT", 6379)
-	RedisPassword := Env("REDIS_PASSWORD", "")
-	RedisDB := EnvInt("REDIS_DB", 2)
-	RedisMaxRetries := EnvInt("REDIS_MAX_RETRIES", 3)
-	RedisPoolSize := EnvInt("REDIS_POOL_SIZE", 10)
-	return RedisConfig{RedisHost, RedisPort, RedisPassword, RedisDB, RedisMaxRetries, RedisPoolSize}, nil
-}
-
 func LoadJWTConfig() (JWTConfig, error) {
 	// Load JWT configuration from environment variables or config file
 	JWTPrivateKeyPath, err := parsePrivateKey(Env("JWT_PRIVATE_KEY_PATH", "keys/jwt_private_key.pem"))
@@ -240,12 +219,6 @@ func LoadAuthConfig() (AuthConfig, error) {
 	return AuthConfig{MagicLinkExpiryMinutes, MagicLinkMaxRequestsPerHour, RefreshTokenExpiryDays, DeviceTokenExpiryDays, InvalidationTokenExpiryMinutes, CaptchaThreshold, RateLimitIPMaxPerHour}, nil
 }
 
-// func LoadCampusConfig() (CampusConfig, error) {
-// 	// Load campus configuration from environment variables or config file
-// 	EmailDomain := Env("EMAIL_DOMAIN", "iitk.ac.in")
-// 	IPRanges := Env("IP_RANGES", "89.207.132.170/24")
-// 	return CampusConfig{EmailDomain, IPRanges}, nil
-// }
 func LoadCampusConfig() (CampusConfig, error) {
 	domain := Env("EMAIL_DOMAIN", "iitk.ac.in")
 	ranges := Env("IP_RANGES", "10.0.0.0/8,172.16.0.0/12")
@@ -283,10 +256,6 @@ func LoadAppConfig() (AppConfig, error) {
 	if err != nil {
 		return AppConfig{}, err
 	}
-	redisConfig, err := LoadRedisConfig()
-	if err != nil {
-		return AppConfig{}, err
-	}
 	jwtConfig, err := LoadJWTConfig()
 	if err != nil {
 		return AppConfig{}, err
@@ -306,11 +275,9 @@ func LoadAppConfig() (AppConfig, error) {
 	return AppConfig{
 		Server:   serverConfig,
 		Database: databaseConfig,
-		Redis:    redisConfig,
 		JWT:      jwtConfig,
 		Mail:     mailConfig,
 		Auth:     authConfig,
 		Campus:   campusConfig,
 	}, nil
-
 }
