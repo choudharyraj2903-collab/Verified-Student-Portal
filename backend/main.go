@@ -31,6 +31,27 @@ func main() {
 	defer dbConn.Close()
 
 	router := gin.Default()
+
+	// CORS — allow frontend origin with credentials
+	allowedOrigins := make(map[string]bool)
+	for _, o := range cfg.Server.ALLOWED_ORIGINS {
+		allowedOrigins[o] = true
+	}
+	router.Use(func(c *gin.Context) {
+		origin := c.Request.Header.Get("Origin")
+		if allowedOrigins[origin] {
+			c.Header("Access-Control-Allow-Origin", origin)
+			c.Header("Access-Control-Allow-Credentials", "true")
+			c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Captcha-Token")
+			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		}
+		if c.Request.Method == http.MethodOptions {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+		c.Next()
+	})
+
 	registerHealth(router, dbConn)
 
 	router.GET("/api/student/status", func(c *gin.Context) {
