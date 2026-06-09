@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { CheckCircle } from "lucide-react";
 import { api } from "@/lib/api";
 
@@ -13,9 +12,7 @@ export default function ConfirmPage() {
 
   useEffect(() => {
     const token = searchParams.get("token");
-    if (token) {
-      api.get(`/auth/confirm?token=${encodeURIComponent(token)}`).catch(() => {});
-    }
+    if (token) api.get(`/auth/confirm?token=${encodeURIComponent(token)}`).catch(() => {});
   }, [searchParams]);
 
   return (
@@ -31,7 +28,7 @@ export default function ConfirmPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="text-center">
-        <Link href="/dashboard" className="inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-[#0a0f1e] font-medium px-4 h-8 text-sm transition-colors">
+          <Link href="/dashboard" className="inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-[#0a0f1e] font-medium px-4 h-8 text-sm transition-colors">
             Go to Dashboard
           </Link>
         </CardContent>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -19,6 +19,11 @@ export default function ProfileCreatePage() {
   const [form, setForm] = useState({ full_name: "", roll_number: "", year: "", branch: "", phone: "", bio: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // If profile already exists, redirect to edit
+  useEffect(() => {
+    api.get("/profile").then((r) => { if (r.success) router.replace("/profile/edit"); }).catch(() => {});
+  }, [router]);
 
   function set(k: string) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>

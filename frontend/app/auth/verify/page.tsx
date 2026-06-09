@@ -15,58 +15,34 @@ export default function VerifyPage() {
 
   useEffect(() => {
     const token = searchParams.get("token");
-    if (!token) {
-      setStatus("error");
-      return;
-    }
+    if (!token) { setStatus("error"); return; }
 
-    // Remove token from URL immediately
-    window.history.replaceState({}, "", "/auth/verify");
+    // Remove token from address bar immediately
+    router.replace("/auth/verify");
 
-    // The backend verify endpoint redirects to /dashboard on success
-    // We call it directly via a redirect which sets cookies
-    const verifyUrl = `${API_URL}/auth/verify?token=${encodeURIComponent(token)}`;
-    
-    // Use fetch to trigger the redirect; the browser follows it and sets cookies
-    fetch(verifyUrl, { credentials: "include", redirect: "follow" })
-      .then((res) => {
-        if (res.ok || res.url.includes("/dashboard") || res.redirected) {
-          setStatus("success");
-          setTimeout(() => router.replace("/dashboard"), 800);
-        } else {
-          setStatus("error");
-        }
-      })
-      .catch(() => setStatus("error"));
-  }, [router, searchParams]);
+    // Hit backend verify — it sets HttpOnly cookies then redirects to /dashboard
+    // We can't use fetch (cookies won't be set on cross-origin redirect in Next.js)
+    // Instead redirect the browser directly so it follows the redirect and receives cookies
+    window.location.href = `${API_URL}/auth/verify?token=${encodeURIComponent(token)}`;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <main className="flex items-center justify-center min-h-screen bg-[#0a0f1e] px-4">
       <Card className="w-full max-w-md bg-[#1a2235] border-[#1e2d45]">
         <CardHeader className="text-center">
           <CardTitle className="text-[#f1f5f9]">
-            {status === "loading" && "Verifying your login link..."}
-            {status === "success" && "Login successful. Redirecting..."}
-            {status === "error" && "Verification Failed"}
+            {status === "loading" ? "Verifying your login link..." : "Verification Failed"}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-4 pb-6">
-          {status === "loading" && (
-            <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
-          )}
-          {status === "success" && (
-            <Loader2 className="h-10 w-10 animate-spin text-emerald-400" />
-          )}
+          {status === "loading" && <Loader2 className="h-10 w-10 animate-spin text-amber-500" />}
           {status === "error" && (
             <>
               <XCircle className="h-10 w-10 text-red-400" />
-              <p className="text-sm text-[#94a3b8] text-center">
-                This link is invalid or has expired.
-              </p>
-              <Button
-                onClick={() => router.push("/auth/login")}
-                className="bg-amber-500 hover:bg-amber-600 text-[#0a0f1e]"
-              >
+              <p className="text-sm text-[#94a3b8] text-center">This link is invalid or has expired.</p>
+              <Button onClick={() => router.push("/auth/login")}
+                className="bg-amber-500 hover:bg-amber-600 text-[#0a0f1e]">
                 Back to Login
               </Button>
             </>
