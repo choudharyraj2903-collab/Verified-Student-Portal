@@ -2,9 +2,7 @@
 .env
 
 # PEM files
-keys/private.pem
-*.pem
-!keys/public.pem
+keys/
 
 # Keys directory (keep the directory but ignore private key)
 # /keys/ is handled above by specific rules
