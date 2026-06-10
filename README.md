@@ -9,8 +9,20 @@ A security-first platform for students to request and manage verification of the
 ## Prerequisites
 - **Go** (1.21 or later)
 - **Node.js** (v18 or later)
-- **PostgreSQL**
+- **Docker & Docker Compose**
 - **Git**
+
+## Database Setup (Docker)
+The easiest way to set up the PostgreSQL database is using Docker Compose. This will automatically initialize the database with the required schema, functions, and seed data.
+
+1. Start the database container:
+   ```bash
+   docker-compose up -d
+   ```
+2. The database will be available at `localhost:5432` with the following default credentials:
+   - **User:** `postgres`
+   - **Password:** `postgres`
+   - **Database:** `verified_student_portal`
 
 ## Backend Setup
 1. Navigate to the backend directory:
@@ -21,7 +33,14 @@ A security-first platform for students to request and manage verification of the
    ```bash
    cp .env.example .env
    ```
-3. Configure your database, mail, and JWT settings in `.env`.
+3. Configure your database settings in `.env` to match the Docker setup:
+   ```env
+   DB_HOST=localhost
+   DB_PORT=5432
+   DB_USER=postgres
+   DB_PASSWORD=postgres
+   DB_NAME=verified_student_portal
+   ```
 4. Generate RSA keys for JWT (RS256):
    ```bash
    mkdir -p backend/keys
@@ -41,6 +60,13 @@ A security-first platform for students to request and manage verification of the
    go run main.go
    ```
    The API will be available at `http://localhost:8080`.
+7. Run the server :
+   ```bash
+   cd cmd/admin
+
+   go run main.go
+   ```
+   The API will be available at `http://localhost:8081`.
 
 ## Frontend Setup
 1. Navigate to the frontend directory:

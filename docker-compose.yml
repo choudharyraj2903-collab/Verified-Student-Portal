@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: verified_student_portal_db
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=verified_student_portal
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./backend/db/functions.sql:/docker-entrypoint-initdb.d/02-functions.sql
+      - ./backend/db/seeds/council.sql:/docker-entrypoint-initdb.d/03-council.sql
+      - ./backend/db/seeds/super_admin.sql:/docker-entrypoint-initdb.d/04-super_admin.sql
+
+volumes:
+  postgres_data:
